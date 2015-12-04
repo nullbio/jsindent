@@ -73,6 +73,10 @@ func doIndent(inputStr string) string {
 	lastLineSawUglyKeyword := false
 	indentNextLine := false
 
+	foundCloserBeforeOpener := false
+	lastFoundCloserBeforeOpener := false
+	foundOpener := false
+
 	foundDo := false
 	parensKeywordFound := false
 	lastLineParensKeywordFound := false
@@ -92,16 +96,18 @@ func doIndent(inputStr string) string {
 			if len(line) != 0 {
 				currentIndentLevel := indentLevel
 				if indentNextLine {
-					// if lastLineEndsWithParen || !lastLineParensKeywordFound {
-					fmt.Printf("helloline: %s, currentline: %s\n", line, currentLine.Bytes())
+					//fmt.Printf("helloline: %s, currentline: %s\n", line, currentLine.Bytes())
 					currentIndentLevel++
-					// }
 					indentNextLine = false
 				}
 
 				lastLineEndsWithParen = bytes.HasSuffix(line, []byte{')'})
 				if lastLineCountOpenerBeforeUglyKeyword == 0 && (lastLineSawUglyKeyword || (lastLineParensKeywordFound && lastLineEndsWithParen)) {
 					indentNextLine = true
+				}
+
+				if lastFoundCloserBeforeOpener && lastOpenCounter >= 0 {
+					currentIndentLevel--
 				}
 
 				for spaces := currentIndentLevel * spacesPerIndent; spaces > 0; spaces-- {
@@ -113,14 +119,14 @@ func doIndent(inputStr string) string {
 
 			outBuf.WriteByte('\n')
 
-			if lastOpenCounter > 0 {
-				indentLevel++
-			} else if currentOpenCounter < 0 {
+			if currentOpenCounter < 0 {
 				indentLevel--
+			} else if lastOpenCounter > 0 {
+				indentLevel++
 			}
 
-			fmt.Printf("lastLineOpens: %d, currentLineOpens: %d, indentLevel: %d, indentNextLine: %t, lastLineEndsWithParen: %t", lastOpenCounter, currentOpenCounter, indentLevel, indentNextLine, lastLineEndsWithParen)
-			fmt.Printf("\nsawUglyKeyword: %t, lastLineSawUglyKeyword: %t, openBeforeKeyword: %d, lastLineOpenBeforeKeyword: %d\nlastLine: %s\n", sawUglyKeyword, lastLineSawUglyKeyword, countOpenerBeforeUglyKeyword, lastLineCountOpenerBeforeUglyKeyword, line)
+			//fmt.Printf("lastLineOpens: %d, currentLineOpens: %d, indentLevel: %d, indentNextLine: %t, lastLineEndsWithParen: %t", lastOpenCounter, currentOpenCounter, indentLevel, indentNextLine, lastLineEndsWithParen)
+			// fmt.Printf("\nsawUglyKeyword: %t, lastLineSawUglyKeyword: %t, openBeforeKeyword: %d, lastLineOpenBeforeKeyword: %d\nlastLine: %s\n", sawUglyKeyword, lastLineSawUglyKeyword, countOpenerBeforeUglyKeyword, lastLineCountOpenerBeforeUglyKeyword, line)
 		}
 
 		lastOpenCounter = currentOpenCounter
@@ -132,8 +138,11 @@ func doIndent(inputStr string) string {
 		countOpenerBeforeUglyKeyword = 0
 		lastLineParensKeywordFound = parensKeywordFound
 		parensKeywordFound = false
+		lastFoundCloserBeforeOpener = foundCloserBeforeOpener
+		foundCloserBeforeOpener = false
+		foundOpener = false
 
-		fmt.Printf("cl: %s\n", bytes.TrimSpace(currentLine.Bytes()))
+		// fmt.Printf("cl: %s\n", bytes.TrimSpace(currentLine.Bytes()))
 		lastLine.Reset()
 		_, _ = lastLine.Write(currentLine.Bytes())
 	}
@@ -179,7 +188,7 @@ func doIndent(inputStr string) string {
 			if identBufStr == "do" {
 				foundDo = true
 			}
-			fmt.Printf("IdentBuf: %s\n", identBufStr)
+			// fmt.Printf("IdentBuf: %s\n", identBufStr)
 
 			if _, ok := parensKeywordsMap[identBufStr]; ok {
 				if identBufStr == "while" && foundDo {
@@ -198,7 +207,7 @@ func doIndent(inputStr string) string {
 				sawUglyKeyword = false
 			}
 
-			fmt.Printf("sawUglyKeyword: %t, countOpenerBeforeUglyKeyword: %d, parensKeywordFound: %t, foundDo: %t\n", sawUglyKeyword, countOpenerBeforeUglyKeyword, parensKeywordFound, foundDo)
+			// fmt.Printf("sawUglyKeyword: %t, countOpenerBeforeUglyKeyword: %d, parensKeywordFound: %t, foundDo: %t\n", sawUglyKeyword, countOpenerBeforeUglyKeyword, parensKeywordFound, foundDo)
 			state = stack.Pop()
 			identBuf.Reset()
 		}
@@ -251,6 +260,7 @@ func doIndent(inputStr string) string {
 		case '{':
 			stack.Push(state)
 			state = stateBrace
+			foundOpener = true
 			currentOpenCounter++
 			parensKeywordFound = false
 		case '}':
@@ -259,26 +269,37 @@ func doIndent(inputStr string) string {
 			}
 			state = stack.Pop()
 			currentOpenCounter--
+			if !foundOpener {
+				foundCloserBeforeOpener = true
+			}
 			parensKeywordFound = false
 		case '(':
 			stack.Push(state)
 			state = stateParen
+			foundOpener = true
 			currentOpenCounter++
 		case ')':
 			if state != stateParen {
 				panic("expected stateParen")
 			}
 			state = stack.Pop()
+			if !foundOpener {
+				foundCloserBeforeOpener = true
+			}
 			currentOpenCounter--
 		case '[':
 			stack.Push(state)
 			state = stateArray
+			foundOpener = true
 			currentOpenCounter++
 		case ']':
 			if state != stateArray {
 				panic("expected stateArray")
 			}
 			state = stack.Pop()
+			if !foundOpener {
+				foundCloserBeforeOpener = true
+			}
 			currentOpenCounter--
 		}
 

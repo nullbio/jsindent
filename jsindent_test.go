@@ -1,11 +1,14 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/davecgh/go-spew/spew"
 )
 
 func getFileNames() []string {
@@ -44,10 +47,11 @@ func TestIndenter(t *testing.T) {
 			t.Errorf("Cannot read file %s: %s", inputFile, err)
 		}
 
-		got := doIndent(string(input))
+		got := []byte(doIndent(string(input)))
 
-		if got != string(expected) {
-			t.Errorf("%s does not match %s:\nGot\n%s\nWanted:\n%s", inputFile, expectedFile, got, expected)
+		if bytes.Compare(got, expected) != 0 {
+			t.Errorf("%02d.js does not match %02d.js:\nGot\n%s\nWanted:\n%s", i, i, got, expected)
+			t.Errorf("%02d.js does not match %02d.js:\nGot\n%s\nWanted:\n%s", i, i, spew.Sdump(got), spew.Sdump(expected))
 		}
 	}
 }
