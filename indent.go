@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 )
 
@@ -66,7 +67,6 @@ func doIndent(inputStr string) string {
 			if len(line) != 0 {
 				currentIndentLevel := indentLevel
 				if indentNextLine {
-					//fmt.Printf("helloline: %s, currentline: %s\n", line, currentLine.Bytes())
 					currentIndentLevel++
 					indentNextLine = false
 				}
@@ -95,8 +95,10 @@ func doIndent(inputStr string) string {
 				indentLevel++
 			}
 
-			//fmt.Printf("lastLineOpens: %d, currentLineOpens: %d, indentLevel: %d, indentNextLine: %t, lastLineEndsWithParen: %t", lastOpenCounter, currentOpenCounter, indentLevel, indentNextLine, lastLineEndsWithParen)
-			// fmt.Printf("\nsawUglyKeyword: %t, lastLineSawUglyKeyword: %t, openBeforeKeyword: %d, lastLineOpenBeforeKeyword: %d\nlastLine: %s\n", sawUglyKeyword, lastLineSawUglyKeyword, countOpenerBeforeUglyKeyword, lastLineCountOpenerBeforeUglyKeyword, line)
+			if *flagDebug {
+				fmt.Printf("lastLineOpens: %d, currentLineOpens: %d, indentLevel: %d, indentNextLine: %t, lastLineEndsWithParen: %t", lastOpenCounter, currentOpenCounter, indentLevel, indentNextLine, lastLineEndsWithParen)
+				fmt.Printf("\nsawUglyKeyword: %t, lastLineSawUglyKeyword: %t, openBeforeKeyword: %d, lastLineOpenBeforeKeyword: %d\nlastLine: %s\n", sawUglyKeyword, lastLineSawUglyKeyword, countOpenerBeforeUglyKeyword, lastLineCountOpenerBeforeUglyKeyword, line)
+			}
 		}
 
 		lastOpenCounter = currentOpenCounter
@@ -112,21 +114,25 @@ func doIndent(inputStr string) string {
 		foundCloserBeforeOpener = false
 		foundOpener = false
 
-		// fmt.Printf("cl: %s\n", bytes.TrimSpace(currentLine.Bytes()))
+		if *flagDebug {
+			fmt.Printf("cl: %s\n", bytes.TrimSpace(currentLine.Bytes()))
+		}
 		lastLine.Reset()
 		_, _ = lastLine.Write(currentLine.Bytes())
 	}
 
 	for _, c := range input {
-		// var charStr = string(c)
-		// if charStr == "\n" {
-		// 	charStr = "\\n"
-		// }
-		// if len(stack.s) > 0 {
-		// 	fmt.Printf("%-17v %v\n%-2s -> ", state, stack.s, charStr)
-		// } else {
-		// 	fmt.Printf("%-17v\n%-2s -> ", state, charStr)
-		// }
+		if *flagDebug {
+			var charStr = string(c)
+			if charStr == "\n" {
+				charStr = "\\n"
+			}
+			if len(stack.s) > 0 {
+				fmt.Printf("%-17v %v\n%-2s -> ", state, stack.s, charStr)
+			} else {
+				fmt.Printf("%-17v\n%-2s -> ", state, charStr)
+			}
+		}
 
 		if (state == stateStringSingle && c != '\'') || (state == stateStringDouble && c != '"') || state == stateStringEscape {
 			currentLine.WriteByte(c)
@@ -158,7 +164,6 @@ func doIndent(inputStr string) string {
 			if identBufStr == "do" {
 				foundDo = true
 			}
-			// fmt.Printf("IdentBuf: %s\n", identBufStr)
 
 			if _, ok := parensKeywordsMap[identBufStr]; ok {
 				if identBufStr == "while" && foundDo {
@@ -177,7 +182,9 @@ func doIndent(inputStr string) string {
 				sawUglyKeyword = false
 			}
 
-			// fmt.Printf("sawUglyKeyword: %t, countOpenerBeforeUglyKeyword: %d, parensKeywordFound: %t, foundDo: %t\n", sawUglyKeyword, countOpenerBeforeUglyKeyword, parensKeywordFound, foundDo)
+			if *flagDebug {
+				fmt.Printf("sawUglyKeyword: %t, countOpenerBeforeUglyKeyword: %d, parensKeywordFound: %t, foundDo: %t\n", sawUglyKeyword, countOpenerBeforeUglyKeyword, parensKeywordFound, foundDo)
+			}
 			state = stack.Pop()
 			identBuf.Reset()
 		}
@@ -205,7 +212,9 @@ func doIndent(inputStr string) string {
 			}
 			newLineHandler()
 			currentLine.Reset()
-			// fmt.Println()
+			if *flagDebug {
+				fmt.Println()
+			}
 			continue
 		case '\\':
 			if state != stateStringDouble && state != stateStringSingle {
