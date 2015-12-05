@@ -33,9 +33,10 @@ func TestIndenter(t *testing.T) {
 		panic(fmt.Sprintf("can't get working directory: %v", err))
 	}
 
-	fileNames := getFileNames()
+	//fileNames := getFileNames()
 
-	for i := 1; i <= len(fileNames)/2; i++ {
+	//for i := 1; i <= len(fileNames)/2; i++ {
+	for i := 6; i <= 6; i++ {
 		expectedFile := fmt.Sprintf(filepath.Join(wd, "testdata/%02d_expected.js"), i)
 		inputFile := fmt.Sprintf(filepath.Join(wd, "testdata/%02d_expected.js"), i)
 		expected, err := ioutil.ReadFile(expectedFile)
